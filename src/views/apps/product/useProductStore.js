@@ -1,7 +1,7 @@
 import axios from '@axios'
 import { defineStore } from 'pinia'
 
-const API_BASE = 'http://localhost:5000/api/products'
+const API_BASE = 'https://ecom-smoky-delta.vercel.app/api/products'
 
 export const useProductStore = defineStore('ProductStore', {
   actions: {
