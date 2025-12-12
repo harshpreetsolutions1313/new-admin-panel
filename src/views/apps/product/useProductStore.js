@@ -1,7 +1,7 @@
 import axios from '@axios'
 import { defineStore } from 'pinia'
 
-const API_BASE = 'https://ecom-li8zjkfje-harshpreets-projects-89314032.vercel.app/api/products'
+const API_BASE = 'https://ecom-dnhcg35uz-harshpreets-projects-89314032.vercel.app/api/products'
 
 export const useProductStore = defineStore('ProductStore', {
   actions: {
