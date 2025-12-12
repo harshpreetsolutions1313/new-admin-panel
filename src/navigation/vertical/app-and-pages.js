@@ -26,20 +26,23 @@ export default [
   //     { title: 'Add', to: 'apps-invoice-add' },
   //   ],
   // },
-  {
-    title: 'User',
-    icon: { icon: 'mdi-account-outline' },
-    children: [
-      { title: 'List', to: 'apps-user-list' },
-      { title: 'View', to: { name: 'apps-user-view-id', params: { id: 21 } } },
-    ],
-  },
+
+  // {
+  //   title: 'User',
+  //   icon: { icon: 'mdi-account-outline' },
+  //   children: [
+  //     { title: 'List', to: 'apps-user-list' },
+  //     { title: 'View', to: { name: 'apps-user-view-id', params: { id: 21 } } },
+  //   ],
+  // },
+
+
   {
     title: 'Products',
     icon: { icon: 'mdi-shopping-outline' },
     children: [
       { title: 'List', to: 'apps-product-list' },
-      { title: 'View', to: { name: 'apps-product-view-id', params: { id: 1 } } },
+      { title: 'View', to: { name: 'apps-product-view-id', params: { id: 8 } } },
     ],
   },
   // {

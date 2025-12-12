@@ -10,11 +10,20 @@ const product = ref()
 const isLoading = ref(false)
 const isEditDrawerOpen = ref(false)
 
+const normalizeProduct = data => ({
+  ...data,
+  id: data?.id ?? data?._id,
+  images: Array.isArray(data?.images) ? data.images : [],
+  variants: Array.isArray(data?.variants) ? data.variants : [],
+})
+
 const loadProduct = () => {
   isLoading.value = true
   productStore.fetchProduct(route.params.id)
     .then(res => {
-      product.value = res.data
+      console.log(res.data)
+      product.value = normalizeProduct(res.data)
+      console.log(product.value)
     })
     .catch(err => {
       console.error('Unable to fetch product', err)
@@ -27,16 +36,18 @@ const loadProduct = () => {
 onMounted(loadProduct)
 
 const saveProduct = payload => {
-  if (!product.value?.id) return
-  productStore.updateProduct(product.value.id, payload).then(() => {
+  const id = product.value?.id ?? product.value?._id
+  if (!id) return
+  productStore.updateProduct(id, payload).then(() => {
     isEditDrawerOpen.value = false
     loadProduct()
   })
 }
 
 const deleteProduct = () => {
-  if (!product.value?.id) return
-  productStore.deleteProduct(product.value.id).then(() => {
+  const id = product.value?.id ?? product.value?._id
+  if (!id) return
+  productStore.deleteProduct(id).then(() => {
     router.push({ name: 'apps-product-list' })
   })
 }

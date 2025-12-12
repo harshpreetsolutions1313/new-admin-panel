@@ -5,11 +5,40 @@ const API_BASE = 'http://localhost:5000/api/products'
 
 export const useProductStore = defineStore('ProductStore', {
   actions: {
-    fetchProducts() {
-      return axios.get(API_BASE)
+    async fetchProducts() {
+      const tryFetch = (config = {}) => axios.get(API_BASE, {
+        validateStatus: status => status >= 200 && status < 400,
+        ...config,
+      })
+
+      const res = await tryFetch()
+
+      // If 304 and we have cached response body, return it; otherwise refetch with cache-bust
+      if (res.status === 304 && (!res.data || (Array.isArray(res.data) && res.data.length === 0))) {
+        return tryFetch({
+          params: { _t: Date.now() },
+          headers: { 'Cache-Control': 'no-cache' },
+        })
+      }
+
+      return res
     },
-    fetchProduct(id) {
-      return axios.get(`${API_BASE}/${id}`)
+    async fetchProduct(id) {
+      const tryFetch = (config = {}) => axios.get(`${API_BASE}/${id}`, {
+        validateStatus: status => status >= 200 && status < 400,
+        ...config,
+      })
+
+      const res = await tryFetch()
+
+      if (res.status === 304 && !res.data) {
+        return tryFetch({
+          params: { _t: Date.now() },
+          headers: { 'Cache-Control': 'no-cache' },
+        })
+      }
+
+      return res
     },
     createProduct(payload) {
       return axios.post(API_BASE, payload)

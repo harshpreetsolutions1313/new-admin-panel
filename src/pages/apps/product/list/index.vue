@@ -1,6 +1,7 @@
 <script setup>
 import AddEditProductDrawer from '@/views/apps/product/list/AddEditProductDrawer.vue'
 import { useProductStore } from '@/views/apps/product/useProductStore'
+import { VDataTable } from 'vuetify/labs/VDataTable'
 
 const productStore = useProductStore()
 
@@ -19,11 +20,28 @@ const headers = [
   { title: 'Actions', key: 'actions', sortable: false },
 ]
 
+const normalizeProduct = product => ({
+  ...product,
+  id: product?.id ?? product?._id,
+  images: Array.isArray(product?.images) ? product.images : [],
+  variants: Array.isArray(product?.variants) ? product.variants : [],
+})
+
+const extractProducts = data => {
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.products)) return data.products
+  if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.result)) return data.result
+  return []
+}
+
 const fetchProducts = () => {
   isLoading.value = true
   productStore.fetchProducts()
     .then(res => {
-      products.value = Array.isArray(res.data) ? res.data : res.data?.products || []
+      const list = extractProducts(res.data).map(normalizeProduct)
+      products.value = list
     })
     .catch(err => {
       console.error('Unable to load products', err)
@@ -58,8 +76,9 @@ const openEditDrawer = product => {
 }
 
 const saveProduct = payload => {
-  if (drawerMode.value === 'edit' && selectedProduct.value?.id) {
-    productStore.updateProduct(selectedProduct.value.id, payload).then(fetchProducts)
+  const id = selectedProduct.value?.id ?? selectedProduct.value?._id
+  if (drawerMode.value === 'edit' && id) {
+    productStore.updateProduct(id, payload).then(fetchProducts)
   }
   else {
     productStore.createProduct(payload).then(fetchProducts)
@@ -110,7 +129,7 @@ const deleteProduct = id => {
               <span v-else>{{ item.raw.name?.slice(0, 2)?.toUpperCase() }}</span>
             </VAvatar>
             <div class="d-flex flex-column">
-              <RouterLink :to="{ name: 'apps-product-view-id', params: { id: item.raw.id } }" class="font-weight-medium">
+              <RouterLink :to="{ name: 'apps-product-view-id', params: { id: item.raw.id ?? item.raw._id } }" class="font-weight-medium">
                 {{ item.raw.name }}
               </RouterLink>
               <span class="text-xs text-medium-emphasis">{{ item.raw.description }}</span>
