@@ -1,11 +1,12 @@
 <script setup>
-import { VDataTableServer } from 'vuetify/labs/VDataTable'
 import { paginationMeta } from '@/@fake-db/utils'
 import AddNewUserDrawer from '@/views/apps/user/list/AddNewUserDrawer.vue'
 import { useUserListStore } from '@/views/apps/user/useUserListStore'
 import { avatarText } from '@core/utils/formatters'
+import { VDataTableServer } from 'vuetify/labs/VDataTable'
 
 const userListStore = useUserListStore()
+
 const searchQuery = ref('')
 const selectedRole = ref()
 const selectedPlan = ref()
@@ -22,235 +23,84 @@ const options = ref({
   search: undefined,
 })
 
-// Headers
+// Updated headers to match the actual data returned by your API
 const headers = [
-  {
-    title: 'User',
-    key: 'user',
-  },
-  {
-    title: 'Email',
-    key: 'email',
-  },
-  {
-    title: 'Role',
-    key: 'role',
-  },
-  {
-    title: 'Plan',
-    key: 'plan',
-  },
-  {
-    title: 'Status',
-    key: 'status',
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    sortable: false,
-  },
+  { title: 'User', key: 'user' },
+  { title: 'Email', key: 'email' },
+  { title: 'Cart Items', key: 'cartCount' },
+  { title: 'Wishlist Items', key: 'wishlistCount' },
+  { title: 'Actions', key: 'actions', sortable: false },
 ]
 
-// 👉 Fetching users
+// Fetching users – correctly handles the new API response format
 const fetchUsers = () => {
-  userListStore.fetchUsers({
-    q: searchQuery.value,
-    status: selectedStatus.value,
-    plan: selectedPlan.value,
-    role: selectedRole.value,
-    options: options.value,
-  }).then(response => {
-    users.value = response.data.users
-    totalPage.value = response.data.totalPage
-    totalUsers.value = response.data.totalUsers
-    options.value.page = response.data.page
-  }).catch(error => {
-    console.error(error)
-  })
+  userListStore
+    .fetchUsers({
+      q: searchQuery.value,
+      status: selectedStatus.value,
+      plan: selectedPlan.value,
+      role: selectedRole.value,
+      options: options.value,
+    })
+    .then(response => {
+      const res = response.data
+
+      console.log("here is the users response", res)
+
+      // New API format: { success: true, count: X, data: [...] }
+      if (res.success && Array.isArray(res.data)) {
+        users.value = res.data
+        totalUsers.value = res.count || res.data.length
+        totalPage.value = Math.ceil((res.count || res.data.length) / options.value.itemsPerPage)
+      } else {
+        console.warn('Invalid or empty response:', res)
+        users.value = []
+        totalUsers.value = 0
+        totalPage.value = 1
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching users:', error)
+      users.value = []
+      totalUsers.value = 0
+      totalPage.value = 1
+    })
 }
 
+// Trigger fetch whenever filters, search or pagination options change
 watchEffect(fetchUsers)
 
-// 👉 search filters
-const roles = [
-  {
-    title: 'Admin',
-    value: 'admin',
-  },
-  {
-    title: 'Author',
-    value: 'author',
-  },
-  {
-    title: 'Editor',
-    value: 'editor',
-  },
-  {
-    title: 'Maintainer',
-    value: 'maintainer',
-  },
-  {
-    title: 'Subscriber',
-    value: 'subscriber',
-  },
-]
-
-const plans = [
-  {
-    title: 'Basic',
-    value: 'basic',
-  },
-  {
-    title: 'Company',
-    value: 'company',
-  },
-  {
-    title: 'Enterprise',
-    value: 'enterprise',
-  },
-  {
-    title: 'Team',
-    value: 'team',
-  },
-]
-
-const status = [
-  {
-    title: 'Pending',
-    value: 'pending',
-  },
-  {
-    title: 'Active',
-    value: 'active',
-  },
-  {
-    title: 'Inactive',
-    value: 'inactive',
-  },
-]
-
-const resolveUserRoleVariant = role => {
-  const roleLowerCase = role.toLowerCase()
-  if (roleLowerCase === 'subscriber')
-    return {
-      color: 'primary',
-      icon: 'mdi-account-outline',
-    }
-  if (roleLowerCase === 'author')
-    return {
-      color: 'warning',
-      icon: 'mdi-cog-outline',
-    }
-  if (roleLowerCase === 'maintainer')
-    return {
-      color: 'success',
-      icon: 'mdi-chart-donut',
-    }
-  if (roleLowerCase === 'editor')
-    return {
-      color: 'info',
-      icon: 'mdi-pencil-outline',
-    }
-  if (roleLowerCase === 'admin')
-    return {
-      color: 'error',
-      icon: 'mdi-laptop',
-    }
-  
-  return {
-    color: 'primary',
-    icon: 'mdi-account-outline',
-  }
-}
-
-const resolveUserStatusVariant = stat => {
-  const statLowerCase = stat.toLowerCase()
-  if (statLowerCase === 'pending')
-    return 'warning'
-  if (statLowerCase === 'active')
-    return 'success'
-  if (statLowerCase === 'inactive')
-    return 'secondary'
-  
-  return 'primary'
-}
+// No longer needed since role/plan/status don't exist in current data
+// const roles = [...]
+// const plans = [...]
+// const status = [...]
 
 const isAddNewUserDrawerVisible = ref(false)
 
+// Add user – refetch list after success
 const addNewUser = userData => {
-  userListStore.addUser(userData)
-
-  // refetch User
-  fetchUsers()
+  userListStore.addUser(userData).then(() => {
+    options.value.page = 1
+    fetchUsers()
+  })
 }
 
+// Delete user – refetch list after success
 const deleteUser = id => {
-  userListStore.deleteUser(id)
-
-  // refetch User
-  fetchUsers()
+  userListStore.deleteUser(id).then(() => {
+    fetchUsers()
+  })
 }
 </script>
 
 <template>
   <section>
-    <VCard
-      title="Search Filters"
-      class="mb-6"
-    >
-      <VCardText>
-        <VRow>
-          <!-- 👉 Select Role -->
-          <VCol
-            cols="12"
-            sm="4"
-          >
-            <VSelect
-              v-model="selectedRole"
-              label="Select Role"
-              placeholder="Select Role"
-              :items="roles"
-              clearable
-              clear-icon="mdi-close"
-            />
-          </VCol>
-
-          <!-- 👉 Select Plan -->
-          <VCol
-            cols="12"
-            sm="4"
-          >
-            <VSelect
-              v-model="selectedPlan"
-              label="Select Plan"
-              placeholder="Select Plan"
-              :items="plans"
-              clearable
-              clear-icon="mdi-close"
-            />
-          </VCol>
-
-          <!-- 👉 Select Status -->
-          <VCol
-            cols="12"
-            sm="4"
-          >
-            <VSelect
-              v-model="selectedStatus"
-              label="Select Status"
-              placeholder="Select Status"
-              :items="status"
-              clearable
-              clear-icon="mdi-close"
-            />
-          </VCol>
-        </VRow>
-      </VCardText>
-    </VCard>
+    <!-- Removed the Search Filters card because role/plan/status filters are not applicable yet -->
+    <!-- You can re-add it later when those fields exist in the API -->
 
     <VCard>
       <VCardText class="d-flex justify-space-between flex-wrap gap-4">
-        <!-- 👉 Export button -->
+        <!-- Export button -->
         <VBtn
           variant="outlined"
           color="secondary"
@@ -260,7 +110,7 @@ const deleteUser = id => {
         </VBtn>
 
         <div class="app-user-search-filter d-flex flex-wrap align-center gap-x-6 gap-y-4">
-          <!-- 👉 Search  -->
+          <!-- Search -->
           <VTextField
             v-model="searchQuery"
             placeholder="Search User"
@@ -269,7 +119,7 @@ const deleteUser = id => {
             class="order-2 order-sm-1"
           />
 
-          <!-- 👉 Add user button -->
+          <!-- Add user button -->
           <VBtn
             class="order-sm-2 order-1"
             @click="isAddNewUserDrawerVisible = true"
@@ -279,7 +129,7 @@ const deleteUser = id => {
         </div>
       </VCardText>
 
-      <!-- SECTION datatable -->
+      <!-- Data table -->
       <VDataTableServer
         v-model:items-per-page="options.itemsPerPage"
         v-model:page="options.page"
@@ -290,70 +140,51 @@ const deleteUser = id => {
         class="text-no-wrap rounded-0"
         @update:options="options = $event"
       >
-        <!-- User -->
+        <!-- User column -->
         <template #item.user="{ item }">
-          <div class="d-flex">
+          <div class="d-flex align-center">
             <VAvatar
               size="34"
-              :variant="!item.raw.avatar ? 'tonal' : undefined"
-              :color="!item.raw.avatar ? resolveUserRoleVariant(item.raw.role).color : undefined"
+              color="primary"
+              variant="tonal"
               class="me-3"
             >
-              <VImg
-                v-if="item.raw.avatar"
-                :src="item.raw.avatar"
-              />
-              <span
-                v-else
-                class="text-sm"
-              >{{ avatarText(item.raw.fullName) }}</span>
+              <span class="text-sm font-weight-medium">
+                {{ avatarText(item.raw.name || '') }}
+              </span>
             </VAvatar>
 
             <div class="d-flex flex-column">
               <h6 class="text-sm">
                 <RouterLink
-                  :to="{ name: 'apps-user-view-id', params: { id: item.raw.id } }"
+                  :to="{ name: 'apps-user-view-id', params: { id: item.raw._id } }"
                   class="font-weight-medium user-list-name"
                 >
-                  {{ item.raw.fullName }}
+                  {{ item.raw.name || 'Unnamed User' }}
                 </RouterLink>
               </h6>
-
-              <span class="text-xs text-medium-emphasis">@{{ item.raw.username }}</span>
+              <span class="text-xs text-medium-emphasis">{{ item.raw.email }}</span>
             </div>
           </div>
         </template>
 
-        <!-- Email -->
+        <!-- Email column (optional – you can remove if you prefer showing it only in User column) -->
         <template #item.email="{ item }">
           <span class="text-sm">{{ item.raw.email }}</span>
         </template>
 
-        <!-- Role -->
-        <template #item.role="{ item }">
-          <div class="d-flex gap-x-2">
-            <VIcon
-              :icon="resolveUserRoleVariant(item.raw.role).icon"
-              :color="resolveUserRoleVariant(item.raw.role).color"
-            />
-            <span class="text-capitalize">{{ item.raw.role }}</span>
-          </div>
+        <!-- Cart Items Count -->
+        <template #item.cartCount="{ item }">
+          <span class="text-sm font-weight-medium">
+            {{ item.raw.cart?.length || 0 }}
+          </span>
         </template>
 
-        <!-- Plan -->
-        <template #item.plan="{ item }">
-          <span class="text-capitalize text-high-emphasis">{{ item.raw.currentPlan }}</span>
-        </template>
-
-        <!-- Status -->
-        <template #item.status="{ item }">
-          <VChip
-            :color="resolveUserStatusVariant(item.raw.status)"
-            size="small"
-            class="text-capitalize"
-          >
-            {{ item.raw.status }}
-          </VChip>
+        <!-- Wishlist Items Count -->
+        <template #item.wishlistCount="{ item }">
+          <span class="text-sm font-weight-medium">
+            {{ item.raw.wishlist?.length || 0 }}
+          </span>
         </template>
 
         <!-- Actions -->
@@ -371,19 +202,21 @@ const deleteUser = id => {
 
             <VMenu activator="parent">
               <VList>
-                <VListItem :to="{ name: 'apps-user-view-id', params: { id: item.raw.id } }">
+                <VListItem :to="{ name: 'apps-user-view-id', params: { id: item.raw._id } }">
                   <template #prepend>
                     <VIcon icon="mdi-eye-outline" />
                   </template>
                   <VListItemTitle>View</VListItemTitle>
                 </VListItem>
+
                 <VListItem link>
                   <template #prepend>
                     <VIcon icon="mdi-pencil-outline" />
                   </template>
                   <VListItemTitle>Edit</VListItemTitle>
                 </VListItem>
-                <VListItem @click="deleteUser(item.raw.id)">
+
+                <VListItem @click="deleteUser(item.raw._id)">
                   <template #prepend>
                     <VIcon icon="mdi-delete-outline" />
                   </template>
@@ -408,12 +241,13 @@ const deleteUser = id => {
                 :items="[10, 20, 25, 50, 100]"
               />
             </div>
+
             <div class="d-flex text-sm align-center text-high-emphasis">
               {{ paginationMeta(options, totalUsers) }}
             </div>
+
             <div class="d-flex gap-x-2 align-center">
               <VBtn
-                class="flip-in-rtl"
                 icon="mdi-chevron-left"
                 variant="text"
                 density="comfortable"
@@ -423,22 +257,20 @@ const deleteUser = id => {
               />
 
               <VBtn
-                class="flip-in-rtl"
                 icon="mdi-chevron-right"
-                density="comfortable"
                 variant="text"
+                density="comfortable"
                 color="default"
                 :disabled="options.page >= Math.ceil(totalUsers / options.itemsPerPage)"
-                @click="options.page >= Math.ceil(totalUsers / options.itemsPerPage) ? options.page = Math.ceil(totalUsers / options.itemsPerPage) : options.page++ "
+                @click="options.page >= Math.ceil(totalUsers / options.itemsPerPage) ? options.page = Math.ceil(totalUsers / options.itemsPerPage) : options.page++"
               />
             </div>
           </div>
         </template>
       </VDataTableServer>
-      <!-- SECTION -->
     </VCard>
 
-    <!-- 👉 Add New User -->
+    <!-- Add New User Drawer -->
     <AddNewUserDrawer
       v-model:isDrawerOpen="isAddNewUserDrawerVisible"
       @user-data="addNewUser"
@@ -449,10 +281,6 @@ const deleteUser = id => {
 <style lang="scss">
 .app-user-search-filter {
   inline-size: 24.0625rem;
-}
-
-.text-capitalize {
-  text-transform: capitalize;
 }
 
 .user-list-name:not(:hover) {

@@ -27,14 +27,14 @@ export default [
   //   ],
   // },
 
-  // {
-  //   title: 'User',
-  //   icon: { icon: 'mdi-account-outline' },
-  //   children: [
-  //     { title: 'List', to: 'apps-user-list' },
-  //     { title: 'View', to: { name: 'apps-user-view-id', params: { id: 21 } } },
-  //   ],
-  // },
+  {
+    title: 'User',
+    icon: { icon: 'mdi-account-outline' },
+    children: [
+      { title: 'List', to: 'apps-user-list' },
+      { title: 'View', to: { name: 'apps-user-view-id', params: { id: 21 } } },
+    ],
+  },
 
 
   {
@@ -45,6 +45,7 @@ export default [
       { title: 'View', to: { name: 'apps-product-view-id', params: { id: 8 } } },
     ],
   },
+
   // {
   //   title: 'Roles & Permissions',
   //   icon: { icon: 'mdi-shield-account-outline' },
